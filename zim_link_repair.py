@@ -11,15 +11,11 @@ from zim.notebook.page import HRef
 from zim.parse.links import link_type
 
 
-# ------------------------------------------------------------
-# Notebook path from command-line argument
-# ------------------------------------------------------------
-
 if len(sys.argv) != 2:
 
     print("Usage:")
     print(
-        f'  {sys.argv[0]} "/path/to/notebook"'
+        f'  python3 {sys.argv[0]} "/path/to/notebook"'
     )
 
     sys.exit(1)
@@ -37,11 +33,6 @@ notebook, href_from_location = build_notebook(
 print("Notebook opened:")
 print(notebook)
 
-
-# ------------------------------------------------------------
-# Build an index of existing pages by their final page name.
-# ------------------------------------------------------------
-
 print("\nBuilding page-name index...\n")
 
 pages_by_name = {}
@@ -55,7 +46,10 @@ for page_path in notebook.pages.walk():
 
     name = page_path.parts[-1]
 
-    pages_by_name.setdefault(name, []).append(page_path)
+    pages_by_name.setdefault(
+        name,
+        []
+    ).append(page_path)
 
 
 print(
@@ -69,10 +63,6 @@ print(
 )
 
 
-# ------------------------------------------------------------
-# Statistics
-# ------------------------------------------------------------
-
 lost_count = 0
 unique_candidate_count = 0
 multiple_candidate_count = 0
@@ -83,10 +73,6 @@ link_count = 0
 
 repaired_count = 0
 
-
-# ------------------------------------------------------------
-# Scan notebook
-# ------------------------------------------------------------
 
 print("\nScanning notebook...\n")
 
@@ -104,6 +90,12 @@ for source in notebook.pages.walk():
 
     if text is None:
         continue
+
+
+    # All changes for this page are prepared in memory.
+    new_text = text
+
+    page_repairs = []
 
 
     links = re.findall(
@@ -140,11 +132,6 @@ for source in notebook.pages.walk():
                 target
             )
 
-
-            # ------------------------------------------------
-            # Existing link -- nothing to do.
-            # ------------------------------------------------
-
             if target_page.exists():
                 continue
 
@@ -159,10 +146,9 @@ for source in notebook.pages.walk():
             )
 
 
-            # ------------------------------------------------
-            # Multiple candidates.
-            # Do not touch the link.
-            # ------------------------------------------------
+            # --------------------------------------------------
+            # Multiple candidates
+            # --------------------------------------------------
 
             if len(candidates) > 1:
 
@@ -199,10 +185,9 @@ for source in notebook.pages.walk():
                 continue
 
 
-            # ------------------------------------------------
-            # No candidate.
-            # Do not touch the link.
-            # ------------------------------------------------
+            # --------------------------------------------------
+            # No candidate
+            # --------------------------------------------------
 
             if len(candidates) == 0:
 
@@ -231,9 +216,9 @@ for source in notebook.pages.walk():
                 continue
 
 
-            # ------------------------------------------------
-            # Exactly one candidate.
-            # ------------------------------------------------
+            # --------------------------------------------------
+            # Exactly one candidate
+            # --------------------------------------------------
 
             unique_candidate_count += 1
 
@@ -244,9 +229,10 @@ for source in notebook.pages.walk():
             new_target = ':' + str(candidate)
 
 
-            # ------------------------------------------------
-            # Verify new link through Zim.
-            # ------------------------------------------------
+            # --------------------------------------------------
+            # Verify that the proposed new link resolves
+            # exactly to the candidate.
+            # --------------------------------------------------
 
             new_href = HRef.new_from_wiki_link(
                 new_target
@@ -259,21 +245,30 @@ for source in notebook.pages.walk():
 
             if new_resolved != candidate:
 
-                print("==================================================")
+                print(
+                    "=================================================="
+                )
+
                 print("ERROR")
+
                 print()
+
                 print(
                     "New link does not resolve to candidate."
                 )
+
                 print(
                     f"SOURCE:     {source}"
                 )
+
                 print(
                     f"Expected:   {candidate}"
                 )
+
                 print(
                     f"Resolved:   {new_resolved}"
                 )
+
                 print()
 
                 print(
@@ -283,9 +278,9 @@ for source in notebook.pages.walk():
                 raise SystemExit(1)
 
 
-            # ------------------------------------------------
-            # Preserve the original label after '|'.
-            # ------------------------------------------------
+            # --------------------------------------------------
+            # Preserve the label, if present.
+            # --------------------------------------------------
 
             if '|' in link:
 
@@ -305,9 +300,11 @@ for source in notebook.pages.walk():
             new_full_link = f"[[{new_link}]]"
 
 
-            # ------------------------------------------------
-            # The exact old link must occur exactly once.
-            # ------------------------------------------------
+            # --------------------------------------------------
+            # Safety check:
+            # the exact old link must occur only once
+            # in the original page.
+            # --------------------------------------------------
 
             occurrence_count = text.count(
                 old_full_link
@@ -315,21 +312,30 @@ for source in notebook.pages.walk():
 
             if occurrence_count != 1:
 
-                print("==================================================")
+                print(
+                    "=================================================="
+                )
+
                 print("ERROR")
+
                 print()
+
                 print(
                     "Unexpected number of occurrences."
                 )
+
                 print(
                     f"SOURCE:     {source}"
                 )
+
                 print(
                     f"OCCURRENCES: {occurrence_count}"
                 )
+
                 print(
                     f"OLD LINK:   {old_full_link}"
                 )
+
                 print()
 
                 print(
@@ -339,136 +345,59 @@ for source in notebook.pages.walk():
                 raise SystemExit(1)
 
 
-            # ------------------------------------------------
-            # Prepare new page text in memory.
-            # ------------------------------------------------
+            # --------------------------------------------------
+            # Apply this replacement only to the in-memory
+            # version of the page.
+            # --------------------------------------------------
 
-            new_text = text.replace(
+            previous_text = new_text
+
+            new_text = new_text.replace(
                 old_full_link,
                 new_full_link,
                 1
             )
 
 
-            if new_text == text:
+            if new_text == previous_text:
 
-                print("==================================================")
+                print(
+                    "=================================================="
+                )
+
                 print("ERROR")
+
                 print()
+
                 print(
                     "Replacement produced no change."
                 )
+
                 print(
                     f"SOURCE:     {source}"
                 )
+
                 print(
                     f"OLD LINK:   {old_full_link}"
                 )
+
                 print(
                     f"NEW LINK:   {new_full_link}"
                 )
+
                 print()
 
                 raise SystemExit(1)
 
 
-            # ------------------------------------------------
-            # Show the repair.
-            # ------------------------------------------------
-
-            print(
-                f"SOURCE:     {source}"
-            )
-
-            print(
-                f"OLD LINK:   [[{old_target}|...]]"
-            )
-
-            print(
-                f"NEW LINK:   [[{new_target}|...]]"
-            )
-
-            print()
-
-
-            # ------------------------------------------------
-            # Get the actual source file.
-            # ------------------------------------------------
-
-            source_file = page.source_file
-
-            backup_file = FilePath(
-                str(source_file) + ".bak"
-            )
-
-
-            # ------------------------------------------------
-            # Never overwrite an existing backup.
-            # ------------------------------------------------
-
-            if os.path.exists(str(backup_file)):
-
-                print("==================================================")
-                print("ERROR")
-                print()
-                print(
-                    f"Backup already exists:\n{backup_file}"
+            page_repairs.append(
+                (
+                    old_target,
+                    new_target,
+                    old_full_link,
+                    new_full_link
                 )
-                print()
-                print(
-                    "ABORTING TO AVOID OVERWRITING THE BACKUP."
-                )
-                print()
-
-                raise SystemExit(1)
-
-
-            # ------------------------------------------------
-            # Create backup.
-            # ------------------------------------------------
-
-            shutil.copy2(
-                str(source_file),
-                str(backup_file)
             )
-
-
-            # ------------------------------------------------
-            # Write repaired page.
-            # ------------------------------------------------
-
-            source_file.write(
-                new_text
-            )
-
-
-            # ------------------------------------------------
-            # Verify written file.
-            # ------------------------------------------------
-
-            check_text = source_file.read()
-
-            if check_text != new_text:
-
-                print("==================================================")
-                print("ERROR")
-                print()
-                print(
-                    "Written file does not match expected text."
-                )
-                print(
-                    f"SOURCE: {source}"
-                )
-                print()
-                print(
-                    f"Backup remains available:\n{backup_file}"
-                )
-                print()
-
-                raise SystemExit(1)
-
-
-            repaired_count += 1
 
 
         except SystemExit:
@@ -476,8 +405,12 @@ for source in notebook.pages.walk():
 
         except Exception as error:
 
-            print("==================================================")
+            print(
+                "=================================================="
+            )
+
             print("ERROR")
+
             print()
 
             print(
@@ -497,9 +430,146 @@ for source in notebook.pages.walk():
             raise SystemExit(1)
 
 
-# ------------------------------------------------------------
-# Summary
-# ------------------------------------------------------------
+    # ==========================================================
+    # All links on this page have now been analysed.
+    #
+    # Nothing has been written yet.
+    # ==========================================================
+
+    if not page_repairs:
+        continue
+
+
+    # ----------------------------------------------------------
+    # Show all repairs prepared for this page.
+    # ----------------------------------------------------------
+
+    print(
+        "=================================================="
+    )
+
+    print(
+        f"PAGE: {source}"
+    )
+
+    print()
+
+    print(
+        f"Repairs prepared: {len(page_repairs)}"
+    )
+
+    print()
+
+    for (
+        old_target,
+        new_target,
+        old_full_link,
+        new_full_link
+    ) in page_repairs:
+
+        print(
+            f"OLD LINK:   {old_full_link}"
+        )
+
+        print(
+            f"NEW LINK:   {new_full_link}"
+        )
+
+        print()
+
+
+    # ----------------------------------------------------------
+    # Create exactly one backup for this page.
+    # ----------------------------------------------------------
+
+    source_file = page.source_file
+
+    backup_file = FilePath(
+        str(source_file) + ".bak"
+    )
+
+
+    if os.path.exists(str(backup_file)):
+
+        print(
+            "=================================================="
+        )
+
+        print("ERROR")
+
+        print()
+
+        print(
+            f"Backup already exists:\n{backup_file}"
+        )
+
+        print()
+
+        print(
+            "ABORTING TO AVOID OVERWRITING THE BACKUP."
+        )
+
+        print()
+
+        raise SystemExit(1)
+
+
+    # ----------------------------------------------------------
+    # Create backup before writing anything.
+    # ----------------------------------------------------------
+
+    shutil.copy2(
+        str(source_file),
+        str(backup_file)
+    )
+
+
+    # ----------------------------------------------------------
+    # Write the complete page once.
+    # ----------------------------------------------------------
+
+    source_file.write(
+        new_text
+    )
+
+
+    # ----------------------------------------------------------
+    # Verify the written file.
+    # ----------------------------------------------------------
+
+    check_text = source_file.read()
+
+    if check_text != new_text:
+
+        print(
+            "=================================================="
+        )
+
+        print("ERROR")
+
+        print()
+
+        print(
+            "Written file does not match expected text."
+        )
+
+        print(
+            f"SOURCE: {source}"
+        )
+
+        print()
+
+        print(
+            f"Backup remains available:\n{backup_file}"
+        )
+
+        print()
+
+        raise SystemExit(1)
+
+
+    repaired_count += len(page_repairs)
+
 
 print(
     "=================================================="
