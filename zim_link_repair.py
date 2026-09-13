@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import re
 import shutil
@@ -17,7 +19,7 @@ if len(sys.argv) != 2:
 
     print("Usage:")
     print(
-        f'  python3 {sys.argv[0]} "/path/to/notebook"'
+        f'  {sys.argv[0]} "/path/to/notebook"'
     )
 
     sys.exit(1)
