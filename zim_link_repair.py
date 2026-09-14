@@ -19,9 +19,11 @@ from zim.parse.links import link_type
 if len(sys.argv) not in (2, 3):
 
     print("Usage:")
+
     print(
         f'  python3 {sys.argv[0]} "/path/to/source/notebook"'
     )
+
     print(
         f'  python3 {sys.argv[0]} '
         f'"/path/to/source/notebook" "Target Notebook Name"'
@@ -122,6 +124,7 @@ if TARGET_NOTEBOOK_NAME is not None:
         print()
         print("ERROR")
         print()
+
         print(
             f'Notebook not found: "{TARGET_NOTEBOOK_NAME}"'
         )
@@ -130,12 +133,15 @@ if TARGET_NOTEBOOK_NAME is not None:
 
     print()
     print("Target notebook:")
+
     print(
         f"Name:       {target_info['name']}"
     )
+
     print(
         f"Path:       {target_info['path']}"
     )
+
     print(
         f"Interwiki:  {target_info['interwiki']}"
     )
@@ -222,6 +228,7 @@ if target_info is not None:
             ).append(
                 target_file
             )
+
 
     print(
         f"Target page filenames indexed: "
@@ -353,7 +360,10 @@ for source in notebook.pages.walk():
                 old_link = f"[[{link}]]"
 
 
-                # Preserve label after | exactly as it was.
+                # ------------------------------------------------
+                # Preserve existing label exactly.
+                # ------------------------------------------------
+
                 if '|' in link:
 
                     _, label = link.split(
@@ -374,6 +384,7 @@ for source in notebook.pages.walk():
 
                 # The exact old link must occur once
                 # in the original page.
+
                 if text.count(old_link) != 1:
 
                     print()
@@ -381,12 +392,15 @@ for source in notebook.pages.walk():
                         "ERROR: Exact old link occurs "
                         "more than once."
                     )
+
                     print(
                         f"SOURCE: {source}"
                     )
+
                     print(
                         f"OLD LINK: {old_link}"
                     )
+
                     print(
                         f"COUNT: {text.count(old_link)}"
                     )
@@ -406,21 +420,27 @@ for source in notebook.pages.walk():
                 print(
                     "=================================================="
                 )
+
                 print(
                     "SOURCE CANDIDATE FOUND"
                 )
+
                 print(
                     f"SOURCE:       {source}"
                 )
+
                 print(
                     f"OLD LINK:     {old_link}"
                 )
+
                 print(
                     f"MISSING PAGE: {target}"
                 )
+
                 print(
                     f"NEW LINK:     {new_link}"
                 )
+
 
                 continue
 
@@ -548,6 +568,24 @@ for source in notebook.pages.walk():
 
 
             # --------------------------------------------------
+            # Final page name for user-visible label.
+            #
+            # Example:
+            #
+            # Интернет-ссылки:2026:08:Название страницы
+            #
+            # becomes:
+            #
+            # Название страницы
+            # --------------------------------------------------
+
+            target_page_name = target_page_path.rsplit(
+                ":",
+                1
+            )[-1]
+
+
+            # --------------------------------------------------
             # Construct interwiki link.
             # --------------------------------------------------
 
@@ -556,6 +594,13 @@ for source in notebook.pages.walk():
                 f"{target_page_path}"
             )
 
+
+            # --------------------------------------------------
+            # Preserve an existing label.
+            #
+            # If there is no label, create one from the
+            # final target page name.
+            # --------------------------------------------------
 
             if '|' in link:
 
@@ -571,7 +616,7 @@ for source in notebook.pages.walk():
             else:
 
                 new_link = (
-                    f"[[{new_target}]]"
+                    f"[[{new_target}|{target_page_name}]]"
                 )
 
 
@@ -579,19 +624,24 @@ for source in notebook.pages.walk():
 
 
             # The exact old link must occur once.
+
             if text.count(old_link) != 1:
 
                 print()
+
                 print(
                     "ERROR: Exact old link occurs "
                     "more than once."
                 )
+
                 print(
                     f"SOURCE: {source}"
                 )
+
                 print(
                     f"OLD LINK: {old_link}"
                 )
+
                 print(
                     f"COUNT: {text.count(old_link)}"
                 )
@@ -693,6 +743,7 @@ for source in notebook.pages.walk():
         if new_text.count(old_link) != 1:
 
             print()
+
             print(
                 "ERROR: Link occurrence changed "
                 "unexpectedly."
@@ -744,6 +795,7 @@ for source in notebook.pages.walk():
     if os.path.exists(str(backup_file)):
 
         print()
+
         print(
             "ERROR: Backup file already exists."
         )
@@ -777,6 +829,7 @@ for source in notebook.pages.walk():
     except Exception as error:
 
         print()
+
         print(
             "ERROR CREATING BACKUP."
         )
@@ -805,6 +858,7 @@ for source in notebook.pages.walk():
     except Exception as error:
 
         print()
+
         print(
             "ERROR WRITING PAGE."
         )
@@ -831,6 +885,7 @@ for source in notebook.pages.walk():
     except Exception as error:
 
         print()
+
         print(
             "ERROR READING PAGE AFTER WRITE."
         )
@@ -849,6 +904,7 @@ for source in notebook.pages.walk():
     if written_text != new_text:
 
         print()
+
         print(
             "ERROR: Verification failed!"
         )
