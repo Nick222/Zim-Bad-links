@@ -115,6 +115,24 @@ for source in notebook.pages.walk():
         if not target_text:
             continue
 
+        # Zim can leave a damaged interwiki link when its target
+        # notebook disappears: [[None?Page]].  It is still a broken
+        # link and must not be discarded as a non-page link.
+        if target_text.startswith('None?'):
+            link_count += 1
+            lost_count += 1
+            missing_path = target_text.split('?', 1)[1].split('|', 1)[0]
+            missing_name = missing_path.rsplit(':', 1)[-1]
+
+            print("==================================================")
+            print("BROKEN INTERWIKI LINK: MISSING KEYWORD")
+            print(f"SOURCE:       {source}")
+            print(f"OLD LINK:     [[{link}]]")
+            print(f"MISSING PAGE: {missing_name}")
+            print("REASON:       Interwiki Keyword was replaced with 'None'.")
+            print()
+            continue
+
         if link_type(target_text) != 'page':
             continue
 

@@ -191,3 +191,9 @@ The purpose of these utilities is narrower:
 > **Find broken links whose target page was moved without changing its page name, and safely repair them when the destination is unambiguous.**
 
 This conservative approach is intentional. When there is uncertainty, the tools report the problem instead of guessing.
+
+## Damaged interwiki links (`None?`)
+
+Zim may leave a link such as `[[None?Some_Page]]` when the target notebook is no longer available in the notebook list. Both scripts now recognize this as a broken interwiki link instead of skipping it as a non-page link.
+
+`zim_lost_links.py` reports these links explicitly. `zim_link_repair.py` reports them and, when run with the target notebook name as its second argument, searches that notebook for a unique page with the matching final page name. A unique target can then be rebuilt using the target notebook's configured Interwiki Keyword; ambiguous or missing candidates are not guessed.

@@ -301,7 +301,13 @@ for source in notebook.pages.walk():
         if not target_text:
             continue
 
-        if link_type(target_text) != 'page':
+        # A missing notebook's Interwiki Keyword may be serialized by
+        # Zim as the literal prefix 'None?'. Treat it as a broken link,
+        # not as a link type to ignore. The target notebook supplied on
+        # the command line is needed to rebuild the correct interwiki URL.
+        is_none_interwiki = target_text.startswith('None?')
+
+        if not is_none_interwiki and link_type(target_text) != 'page':
             continue
 
         link_count += 1
@@ -315,30 +321,37 @@ for source in notebook.pages.walk():
             # Do not replace it with custom link resolution.
             # ------------------------------------------------
 
-            href = HRef.new_from_wiki_link(
-                target_text
-            )
+            if is_none_interwiki:
+                # The path after '?' is the old target notebook page path.
+                # Do not resolve it as a local page and do not suggest a
+                # same-named page from the source notebook as a repair.
+                target = target_text
+                missing_path = target_text.split('?', 1)[1]
+                missing_name = missing_path.rsplit(':', 1)[-1]
+                lost_count += 1
+            else:
+                href = HRef.new_from_wiki_link(
+                    target_text
+                )
 
-            target = notebook.pages.resolve_link(
-                source,
-                href
-            )
+                target = notebook.pages.resolve_link(
+                    source,
+                    href
+                )
 
-            target_page = notebook.get_page(
-                target
-            )
+                target_page = notebook.get_page(
+                    target
+                )
 
-            if target_page.exists():
-                continue
+                if target_page.exists():
+                    continue
 
+                # ------------------------------------------------
+                # Lost link
+                # ------------------------------------------------
 
-            # ------------------------------------------------
-            # Lost link
-            # ------------------------------------------------
-
-            lost_count += 1
-
-            missing_name = target.parts[-1]
+                lost_count += 1
+                missing_name = target.parts[-1]
 
 
             # ==================================================
@@ -350,8 +363,18 @@ for source in notebook.pages.walk():
                 []
             )
 
+            if is_none_interwiki:
+                print("==================================================")
+                print("BROKEN INTERWIKI LINK: MISSING KEYWORD")
+                print(f"SOURCE:       {source}")
+                print(f"OLD LINK:     [[{link}]]")
+                print(f"MISSING PAGE: {missing_name}")
+                print("REASON:       Interwiki Keyword was replaced with 'None'.")
+                if target_info is None:
+                    print("REPAIR:       Run with the target notebook name to search it.")
+                print()
 
-            if len(source_candidates) == 1:
+            if len(source_candidates) == 1 and not is_none_interwiki:
 
                 source_candidate_count += 1
 
